@@ -196,7 +196,6 @@ public class PlayerMovement : MonoBehaviour
             ls.x *= -1f;
             transform.localScale = ls;
 
-
         }
     }
     private void OnDrawGizmosSelected()
