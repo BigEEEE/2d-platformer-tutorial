@@ -17,13 +17,19 @@ public class PlayerMovement : MonoBehaviour
     [Header("Jumping")]
     public float jumpStrength;
     public int jumpLimit;
-    
 
+    [Header("Wall Movement")]
+    public float wallSlideSpeed;
 
     [Header("Ground Check")]
     public Transform groundCheckPos;
     public Vector2 groundCheckSize;
     public LayerMask groundCheckLayerMask;
+
+    [Header("Wall Check")]
+    public Transform wallCheckPos;
+    public Vector2 wallCheckSize;
+    public LayerMask wallCheckLayerMask;
 
     [Header("Gravity")]
     public float baseGravity;
@@ -32,6 +38,8 @@ public class PlayerMovement : MonoBehaviour
 
     private float horizontalMovement;
     private int jumpsRemaining;
+    private bool isFacingRight = true;
+    private bool isGrounded;
    
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -42,9 +50,9 @@ public class PlayerMovement : MonoBehaviour
     void Update()
     {
         GroundCheck();
-        
-      
-        Debug.Log(jumpsRemaining);
+
+        Flip();
+
     }
     // Update is called once per frame
     void FixedUpdate()
@@ -81,16 +89,10 @@ public class PlayerMovement : MonoBehaviour
 
     }
 
-    private void GroundCheck()
-    {
-        if (Physics2D.OverlapBox(groundCheckPos.position, groundCheckSize, 0 , groundCheckLayerMask))
-        {
-            jumpsRemaining = jumpLimit;
-        }
-       
-    }
 
-    private void Gravity() {
+
+    private void Gravity() 
+    {
 
         if (rb.linearVelocity.y < 0)
         {
@@ -103,17 +105,52 @@ public class PlayerMovement : MonoBehaviour
         }
     }
 
-    /*private void Flip()
+    private void GroundCheck()
     {
-        if (horizontalMovement < 0 )
+        if (Physics2D.OverlapBox(groundCheckPos.position, groundCheckSize, 0, groundCheckLayerMask))
+        {
+            jumpsRemaining = jumpLimit;
+            isGrounded = true;
+        }
+        else
+        {
+            isGrounded = false;
+        }
+
+    }
+    private void WallCheck()
+    {
+        if (Physics2D.OverlapBox(wallCheckPos.position, wallCheckSize, 0, wallCheckLayerMask))
         {
 
         }
-    */
+    }
+    private void WallSlide()
+    {
+        if (!isGrounded)
+        {
+
+        }
+    }
+
+    private void Flip()
+    {
+        if (isFacingRight && horizontalMovement < 0 || !isFacingRight && horizontalMovement > 0)
+        {
+            isFacingRight = !isFacingRight;
+            Vector3 ls = transform.localScale;
+            ls.x *= -1f;
+            transform.localScale = ls;
+
+
+        }
+    }
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.blue;
         Gizmos.DrawWireCube(groundCheckPos.position, groundCheckSize);
+        Gizmos.color = Color.red;
+        Gizmos.DrawWireCube(wallCheckPos.position, wallCheckSize);
     }
 
     private void OnTriggerEnter2D(Collider2D collision)
