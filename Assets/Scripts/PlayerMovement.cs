@@ -15,11 +15,13 @@ public class PlayerMovement : MonoBehaviour
     public float moveSpeed;
 
     [Header("Jumping")]
-    public float jumpStrength;
     public int jumpLimit;
-
+    public float jumpStrength;
+    
     [Header("Wall Movement")]
     public float wallSlideSpeed;
+    public float wallJumpTime;
+    public Vector2 wallJumpPower = new Vector2 (5f, 10f);
 
     [Header("Ground Check")]
     public Transform groundCheckPos;
@@ -36,10 +38,16 @@ public class PlayerMovement : MonoBehaviour
     public float maxFallSpeed;
     public float fallSpeedMultiplier;
 
-    private float horizontalMovement;
     private int jumpsRemaining;
+
+    private float horizontalMovement;
+    private float wallJumpDirection;
+    private float wallJumpTimer;
+    
     private bool isFacingRight = true;
     private bool isGrounded;
+    private bool isWallSliding;
+    private bool isWallJumping;
    
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
@@ -49,16 +57,18 @@ public class PlayerMovement : MonoBehaviour
 
     void Update()
     {
+        Debug.Log(isWallSliding);
+
         GroundCheck();
-
-        Flip();
-
-    }
-    // Update is called once per frame
-    void FixedUpdate()
-    {
         Gravity();
-        rb.linearVelocity = new Vector2(horizontalMovement * moveSpeed, rb.linearVelocity.y);
+        WallSlide();
+        WallJumpProcess();
+
+        if (!isWallJumping)
+        {
+            Flip();
+            rb.linearVelocity = new Vector2(horizontalMovement * moveSpeed, rb.linearVelocity.y);
+        }
     }
 
     public void Move(InputAction.CallbackContext context)
@@ -85,6 +95,25 @@ public class PlayerMovement : MonoBehaviour
                 jumpsRemaining--;
             }
 
+        }
+
+        //Wall jump
+
+        if (context.performed && wallJumpTimer > 0f)
+        {
+            isWallJumping = true;
+            rb.linearVelocity = new Vector2(wallJumpDirection * wallJumpPower.x, wallJumpPower.y);
+            wallJumpTimer = 0;
+
+            if(transform.localScale.x != wallJumpDirection)
+            {
+                isFacingRight = !isFacingRight;
+                Vector3 ls = transform.localScale;
+                ls.x *= -1f;
+                transform.localScale = ls;
+            }
+
+            Invoke(nameof(CancelWallJump), wallJumpTime + 0.1f);
         }
 
     }
@@ -118,19 +147,44 @@ public class PlayerMovement : MonoBehaviour
         }
 
     }
-    private void WallCheck()
+    private bool WallCheck()
     {
-        if (Physics2D.OverlapBox(wallCheckPos.position, wallCheckSize, 0, wallCheckLayerMask))
-        {
-
-        }
+        return Physics2D.OverlapBox(wallCheckPos.position, wallCheckSize, 0, wallCheckLayerMask);
+   
     }
     private void WallSlide()
     {
-        if (!isGrounded)
+        if (!isGrounded & WallCheck() & horizontalMovement != 0)
         {
+            isWallSliding = true;
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, Mathf.Max(rb.linearVelocity.y, -wallSlideSpeed));
+        }
+        else
+        {
+            isWallSliding = false;        
+        }
+    }
+
+    private void WallJumpProcess()
+    {
+        if (isWallSliding)
+        {
+            isWallJumping = false;
+            wallJumpDirection = -transform.localScale.x;
+            wallJumpTimer = wallJumpTime;
+
+            CancelInvoke(nameof(CancelWallJump));
 
         }
+        else if (wallJumpTimer > 0f)
+        {
+            wallJumpTimer -= Time.deltaTime;
+        }
+    }
+
+    private void CancelWallJump()
+    {
+        isWallJumping = false;
     }
 
     private void Flip()
